@@ -1,0 +1,1 @@
+# ad-translation-tool
