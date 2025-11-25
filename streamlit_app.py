@@ -394,11 +394,16 @@ with st.sidebar:
         st.session_state.supabase_key = supabase_key
         st.session_state.gemini_key = gemini_key
         
-        if supabase_url and supabase_key:
-            st.session_state.supabase_client = create_client(supabase_url, supabase_key)
-            st.success("✅ Configured!")
+        # FIX: Only create client if BOTH url and key are provided AND not empty
+        if supabase_url and supabase_key and supabase_url.strip() and supabase_key.strip():
+            try:
+                st.session_state.supabase_client = create_client(supabase_url, supabase_key)
+                st.success("✅ Configured!")
+            except Exception as e:
+                st.error(f"❌ Failed to connect to Supabase: {str(e)}")
+                st.session_state.supabase_client = None
         else:
-            st.error("Please fill all fields")
+            st.error("Please fill all fields with valid values")
     
     st.markdown("---")
     if st.session_state.supabase_client:
@@ -411,8 +416,8 @@ with st.sidebar:
             st.metric("Ad Copies", ad_count)
             st.metric("Translations", trans_count)
             st.metric("Countries", country_count)
-        except:
-            pass
+        except Exception as e:
+            st.warning(f"Could not fetch stats: {str(e)}")
 
 # Helper functions
 def get_supabase() -> Client:
@@ -903,3 +908,4 @@ with tab4:
                             st.rerun()
         else:
             st.info("No countries configured yet. Add one above!")
+            
