@@ -115,6 +115,10 @@ st.markdown("""
     .st-gi{
         -webkit-text-fill-color: black;
     }
+            
+    .st-eo{
+        -webkit-text-fill-color: black;
+    }
     
     .st-af {
     position: relative;
@@ -368,65 +372,72 @@ html, body, .stApp{
 </style>
 """, unsafe_allow_html=True)
 
-# Initialize session state
-if 'supabase_url' not in st.session_state:
-    st.session_state.supabase_url = ""
-if 'supabase_key' not in st.session_state:
-    st.session_state.supabase_key = ""
+import streamlit as st
+import re
+import json
+import google.generativeai as genai
+from supabase import create_client, Client
+
+# Initialize Supabase from secrets
+@st.cache_resource
+def init_supabase():
+    """Initialize Supabase client from secrets"""
+    try:
+        supabase_url = st.secrets["supabase"]["url"]
+        supabase_key = st.secrets["supabase"]["key"]
+        return create_client(supabase_url, supabase_key)
+    except Exception as e:
+        st.error(f"❌ Error loading Supabase credentials from secrets: {str(e)}")
+        st.info("💡 Make sure your .streamlit/secrets.toml file is properly configured")
+        st.stop()
+
+# Initialize session state for Gemini API key
 if 'gemini_key' not in st.session_state:
     st.session_state.gemini_key = ""
-if 'supabase_client' not in st.session_state:
-    st.session_state.supabase_client = None
 
-# Sidebar for API credentials
+# Sidebar for Gemini API key only
 with st.sidebar:
     st.markdown("# ⚙️ Configure")
     st.markdown("---")
     
-    st.markdown("### 🔐 API Credentials")
-    supabase_url = st.text_input("Supabase URL", value=st.session_state.supabase_url, type="password", help="Enter your Supabase project URL")
-    supabase_key = st.text_input("Supabase Key", value=st.session_state.supabase_key, type="password", help="Enter your Supabase anon/service key")
-    gemini_key = st.text_input("Gemini API Key", value=st.session_state.gemini_key, type="password", help="Enter your Google Gemini API key")
+    st.markdown("### 🔐 Gemini API Key")
+    gemini_key = st.text_input(
+        "Gemini API Key", 
+        value=st.session_state.gemini_key, 
+        type="password", 
+        help="Enter your Google Gemini API key"
+    )
     
     st.markdown("")
-    if st.button("💾 Save Configuration", use_container_width=True):
-        st.session_state.supabase_url = supabase_url
-        st.session_state.supabase_key = supabase_key
+    if st.button("💾 Save API Key", use_container_width=True):
         st.session_state.gemini_key = gemini_key
-        
-        # FIX: Only create client if BOTH url and key are provided AND not empty
-        if supabase_url and supabase_key and supabase_url.strip() and supabase_key.strip():
-            try:
-                st.session_state.supabase_client = create_client(supabase_url, supabase_key)
-                st.success("✅ Configured!")
-            except Exception as e:
-                st.error(f"❌ Failed to connect to Supabase: {str(e)}")
-                st.session_state.supabase_client = None
+        if gemini_key and gemini_key.strip():
+            st.success("✅ Gemini API key saved!")
         else:
-            st.error("Please fill all fields with valid values")
+            st.error("❌ Please enter a valid API key")
     
     st.markdown("---")
-    if st.session_state.supabase_client:
-        try:
-            supabase = st.session_state.supabase_client
-            ad_count = len(supabase.table('ad_copies').select('id').execute().data)
-            trans_count = len(supabase.table('translations').select('id').execute().data)
-            country_count = len(supabase.table('country_prompts').select('id').execute().data)
-            
-            st.metric("Ad Copies", ad_count)
-            st.metric("Translations", trans_count)
-            st.metric("Countries", country_count)
-        except Exception as e:
-            st.warning(f"Could not fetch stats: {str(e)}")
+    st.markdown("### 📊 Database Stats")
+    
+    try:
+        supabase = init_supabase()
+        ad_count = len(supabase.table('ad_copies').select('id').execute().data)
+        trans_count = len(supabase.table('translations').select('id').execute().data)
+        country_count = len(supabase.table('country_prompts').select('id').execute().data)
+        
+        st.metric("Ad Copies", ad_count)
+        st.metric("Translations", trans_count)
+        st.metric("Countries", country_count)
+    except Exception as e:
+        st.warning(f"⚠️ Could not fetch stats: {str(e)}")
 
 # Helper functions
 def get_supabase() -> Client:
-    if st.session_state.supabase_client is None:
-        st.error("⚠️ Please configure Supabase credentials in the sidebar")
-        st.stop()
-    return st.session_state.supabase_client
+    """Get Supabase client"""
+    return init_supabase()
 
 def get_gemini():
+    """Get Gemini model"""
     if not st.session_state.gemini_key:
         st.error("⚠️ Please configure Gemini API key in the sidebar")
         st.stop()
@@ -555,22 +566,22 @@ with tab1:
                         new_product = st.text_input("Product", value=ad.get('product', ''), key=f"p_{ad['id']}")
 
                     with col_b:
-                            st.markdown("")
-                            st.markdown("")
-                            if st.button("💾 Update", key=f"upd_{ad['id']}", use_container_width=True):
-                                supabase.table('ad_copies').update({
-                                    'headline': new_headline,
-                                    'body': new_body,
-                                    'link_text': new_link_text,
-                                    'product': new_product
-                                }).eq('id', ad['id']).execute()
-                                st.success("✅ Updated!")
-                                st.rerun()
-                            
-                            if st.button("🗑️ Delete", key=f"del_{ad['id']}", use_container_width=True):
-                                supabase.table('ad_copies').delete().eq('id', ad['id']).execute()
-                                st.success("🗑️ Deleted!")
-                                st.rerun()
+                        st.markdown("")
+                        st.markdown("")
+                        if st.button("💾 Update", key=f"upd_{ad['id']}", use_container_width=True):
+                            supabase.table('ad_copies').update({
+                                'headline': new_headline,
+                                'body': new_body,
+                                'link_text': new_link_text,
+                                'product': new_product
+                            }).eq('id', ad['id']).execute()
+                            st.success("✅ Updated!")
+                            st.rerun()
+                        
+                        if st.button("🗑️ Delete", key=f"del_{ad['id']}", use_container_width=True):
+                            supabase.table('ad_copies').delete().eq('id', ad['id']).execute()
+                            st.success("🗑️ Deleted!")
+                            st.rerun()
         else:
             st.info("📭 No ad copies yet. Create your first one using the form on the left!")
 
@@ -725,8 +736,7 @@ with tab2:
                         new_product_trans = st.text_input("Product", value=trans.get('product', ''), key=f"tp_{trans['id']}")
                         
                         # Quality score display
-                        quality_class = "quality-high" if score >= 80 else "quality-medium" if score >= 60 else "quality-low"
-                        st.markdown(f'<div class="quality-badge {quality_class}">Quality Score: {score}%</div>', unsafe_allow_html=True)
+                        st.markdown(f"**Quality Score:** {score}%")
 
                     with col_b:
                         st.markdown("")
@@ -807,8 +817,7 @@ with tab3:
                 st.success(corrected)
                 
                 score_color = "🟢" if score >= 80 else "🟡" if score >= 60 else "🔴"
-                quality_class = "quality-high" if score >= 80 else "quality-medium" if score >= 60 else "quality-low"
-                st.markdown(f'<div class="quality-badge {quality_class}">{score_color} Quality Score: {score}%</div>', unsafe_allow_html=True)
+                st.markdown(f"**{score_color} Quality Score:** {score}%")
                 st.markdown(f"**💬 Feedback:** {feedback}")
             
             st.markdown("")
@@ -855,7 +864,7 @@ with tab4:
                     st.error("⚠️ Country code and language are required")
     
     with col2:
-        st.subheader("Existing Countries")
+        st.markdown("### 🌍 Existing Countries")
         
         supabase = get_supabase()
         countries = supabase.table('country_prompts').select('*').execute()
@@ -863,12 +872,33 @@ with tab4:
         if countries.data:
             for country in countries.data:
                 with st.expander(f"🌍 {country['country_code']} - {country['language']}"):
-                    st.text_area("System Prompt", value=country['system_prompt'], key=f"cs_{country['id']}", disabled=True)
-                    st.text_area("User Prompt", value=country['user_prompt'], key=f"cu_{country['id']}", disabled=True)
+                    # Editable text areas
+                    new_system_prompt = st.text_area(
+                        "System Prompt", 
+                        value=country['system_prompt'], 
+                        key=f"cs_{country['id']}", 
+                        height=100
+                    )
+                    new_user_prompt = st.text_area(
+                        "User Prompt", 
+                        value=country['user_prompt'], 
+                        key=f"cu_{country['id']}", 
+                        height=100
+                    )
                     
-                    col_a, col_b = st.columns(2)
+                    col_a, col_b, col_c = st.columns(3)
+                    
                     with col_a:
-                        if st.button(f"🔄 Translate All Ad Copies to {country['country_code']}", key=f"trans_all_{country['id']}"):
+                        if st.button("💾 Update", key=f"cupd_{country['id']}", use_container_width=True):
+                            supabase.table('country_prompts').update({
+                                'system_prompt': new_system_prompt,
+                                'user_prompt': new_user_prompt
+                            }).eq('id', country['id']).execute()
+                            st.success("✅ Country updated!")
+                            st.rerun()
+                    
+                    with col_b:
+                        if st.button(f"🔄 Translate All", key=f"trans_all_{country['id']}", use_container_width=True):
                             model = get_gemini()
                             ad_copies = supabase.table('ad_copies').select('*').execute()
                             
@@ -901,11 +931,11 @@ with tab4:
                             st.success(f"✅ All ad copies translated to {country['country_code']}!")
                             st.rerun()
                     
-                    with col_b:
-                        if st.button("🗑️ Delete Country", key=f"cdel_{country['id']}"):
+                    with col_c:
+                        if st.button("🗑️ Delete", key=f"cdel_{country['id']}", use_container_width=True):
                             supabase.table('country_prompts').delete().eq('id', country['id']).execute()
-                            st.success("Deleted!")
+                            st.success("✅ Deleted!")
                             st.rerun()
         else:
-            st.info("No countries configured yet. Add one above!")
-            
+            st.info("📭 No countries configured yet. Add one above!")
+
