@@ -1,3 +1,31 @@
+# 🌍 GlobalAdSync
+### AI-Powered Multilingual Ad Copy Management & Translation Platform
+
+GlobalAdSync lets marketers write ad copy once and automatically translate it into multiple languages with scoring, editing, and management capabilities. Built for real-world marketing workflows.
+
+---
+
+## 🚀 Features
+
+- ✍️ Create & manage base ad copy  
+- 🌎 Multi-language translation  
+- 🧠 Quality scoring per translation  
+- 🧩 Placeholder integrity (keeps `<product>` etc.)  
+- 🔁 New-country backfill  
+- 📊 Progress bar for translation batches  
+- 🔍 Filtering & search  
+- 🗄 Supabase storage  
+- 🤖 Custom prompt-driven translation  
+
+---
+
+## 🧩 Architecture
+
+Frontend: Streamlit
+Backend: Python
+Database: Supabase (Postgres)
+Translation Models: AI language models
+Authentication: Supabase (optional)
 
 ---
 
@@ -126,3 +154,48 @@ git clone https://github.com/yourrepo/globaladsync.git
 cd globaladsync
 pip install -r requirements.txt
 streamlit run app.py
+```
+
+
+## 🔑 Environment Setup
+
+Create a `.env` file with:
+
+SUPABASE_URL=
+SUPABASE_KEY=
+AI_API_KEY=
+
+
+
+---
+
+## 🧠 Developer Notes
+
+- All translation is prompt-based  
+- Placeholders remain intact  
+- DB syncing is immediate  
+- UI is fully extensible  
+
+---
+
+## 🤝 Contributing
+
+Pull requests welcome!  
+Open an issue for larger feature discussions.
+
+---
+
+## 🛡 License
+
+MIT License
+
+---
+
+## 💬 Contact
+
+For support, feature proposals, or collaboration — submit via GitHub issues.
+
+---
+
+
+
