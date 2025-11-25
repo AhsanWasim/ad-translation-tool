@@ -150,7 +150,7 @@ Use results for:
 # 💾 Installation
 
 ```bash
-git clone https://github.com/yourrepo/globaladsync.git
+git clone git@github.com:AhsanWasim/ad-translation-tool.git
 cd globaladsync
 pip install -r requirements.txt
 streamlit run app.py
