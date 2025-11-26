@@ -883,19 +883,33 @@ with tab4:
                     st.rerun()
                 else:
                     st.error("⚠️ Country code and language are required")
-    
+        
     with col2:
-        st.subheader("Existing Countries")
-        
-        supabase = get_supabase()
-        countries = supabase.table('country_prompts').select('*').execute()
-        
-        if countries.data:
-            for country in countries.data:
-                with st.expander(f"🌍 {country['country_code']} - {country['language']}"):
-                    st.text_area("System Prompt", value=country['system_prompt'], key=f"cs_{country['id']}", disabled=True)
-                    st.text_area("User Prompt", value=country['user_prompt'], key=f"cu_{country['id']}", disabled=True)
-                    
+            st.subheader("Existing Countries")
+            
+            supabase = get_supabase()
+            countries = supabase.table('country_prompts').select('*').execute()
+            
+            if countries.data:
+                for country in countries.data:
+                    with st.expander(f"🌍 {country['country_code']} - {country['language']}"):
+                        # Make text areas editable
+                        new_system_prompt = st.text_area("System Prompt", value=country['system_prompt'], key=f"cs_{country['id']}", height=100)
+                        new_user_prompt = st.text_area("User Prompt", value=country['user_prompt'], key=f"cu_{country['id']}", height=100)
+                        
+                        # Add update button
+                        col_update, col_trans, col_delete = st.columns([1, 2, 1])
+                        
+                        with col_update:
+                            if st.button("💾 Update", key=f"cupd_{country['id']}", use_container_width=True):
+                                supabase.table('country_prompts').update({
+                                    'system_prompt': new_system_prompt,
+                                    'user_prompt': new_user_prompt
+                                }).eq('id', country['id']).execute()
+                                st.success("✅ Updated!")
+                                st.rerun()
+                        
+                        with col_trans:                    
                     col_a, col_b = st.columns(2)
                     with col_a:
                         if st.button(f"🔄 Translate All Ad Copies to {country['country_code']}", key=f"trans_all_{country['id']}"):
