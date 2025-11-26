@@ -140,7 +140,10 @@ st.markdown("""
     .st-dl:hover{
         background-color:beige !important;        
     }
-            
+
+    .st-gr {
+        -webkit-text-fill-color: none;
+    }            
             
     /* Expander */
     .streamlit-expanderHeader {
