@@ -111,6 +111,14 @@ st.markdown("""
     .st-ey {
     -webkit-text-fill-color: black; /* any color you want */
     }
+    
+    .st-es {
+    -webkit-text-fill-color: black;
+    }
+            
+    .st-gn {
+    -webkit-text-fill-color: black;
+    }
             
     .st-gi{
         -webkit-text-fill-color: black;
